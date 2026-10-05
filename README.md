@@ -123,7 +123,6 @@ The application displays:
 
 ## 🔒 API Features
 
-- No API Key Required
 - Direct API Integration
 - Location-Based Weather Data
 - Automatic Timezone Detection
