@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0b0e1a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta
+      name="description"
+      content="Skyline — Accurate live weather and 7-day forecast, anytime, anywhere."
+    />
+    <title>Skyline — Weather Anytime</title>
+
+    <!-- Leaflet (map library) -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="./Logo/Logo.jpg" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <!-- Living sky backdrop -->
+    <div class="sky" id="sky">
+      <div class="sky-glow sky-glow--a"></div>
+      <div class="sky-glow sky-glow--b"></div>
+      <div class="stars"></div>
+    </div>
+
+    <div class="app">
+      <!-- ============ HEADER ============ -->
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">⛅</span>
+          <span class="brand-name">Skyline</span>
+        </div>
+
+        <form class="search" id="searchForm" autocomplete="off">
+          <input
+            type="text"
+            id="cityInput"
+            class="search-input"
+            placeholder="Search a city or pin on map"
+            aria-label="Search for a city"
+            inputmode="search"
+            enterkeyhint="search"
+          />
+          <button type="submit" class="search-btn" aria-label="Search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <circle
+                cx="11"
+                cy="11"
+                r="7"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+              <path
+                d="M21 21l-4.3-4.3"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            class="map-btn"
+            id="mapToggleBtn"
+            aria-label="Open map"
+            title="Pick location on map"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M9 3 3 6v15l6-3 6 3 6-3V3l-6 3-6-3z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M9 3v15M15 6v15"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            class="locate-btn"
+            id="locateBtn"
+            aria-label="Use current location"
+            title="Use current location"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 2v3M12 19v3M2 12h3M19 12h3"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <circle
+                cx="12"
+                cy="12"
+                r="6"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+            </svg>
+          </button>
+        </form>
+
+        <div
+          class="unit-toggle"
+          id="unitToggle"
+          role="group"
+          aria-label="Temperature unit"
+        >
+          <button type="button" class="unit-btn is-active" data-unit="C">
+            °C
+          </button>
+          <button type="button" class="unit-btn" data-unit="F">°F</button>
+        </div>
+      </header>
+
+      <!-- ============ MAP PANEL ============ -->
+      <section class="map-panel glass" id="mapPanel" hidden>
+        <div class="map-header">
+          <div>
+            <h3>📍 Pin your exact location</h3>
+            <p class="map-hint">
+              Tap anywhere on the map — or drag the pin — to get weather for
+              that exact spot.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="map-close"
+            id="mapCloseBtn"
+            aria-label="Close map"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div id="worldMap" class="world-map"></div>
+
+        <div class="map-footer">
+          <div class="map-coords" id="mapCoords">
+            No pin yet — tap the map
+          </div>
+          <button type="button" class="map-use-btn" id="mapUseBtn" disabled>
+            Use this location →
+          </button>
+        </div>
+      </section>
+
+      <!-- Suggestions dropdown -->
+      <ul class="suggestions" id="suggestions" hidden></ul>
+
+      <!-- ============ MAIN ============ -->
+      <main class="main" id="main">
+        <!-- Empty -->
+        <section class="state state--empty" id="emptyState">
+          <div class="empty-glyph">🌤️</div>
+          <h2>Find out what the sky has planned</h2>
+          <p>
+            Search a city, share your location, or pin a spot on the map to see
+            live conditions and a 7-day outlook.
+          </p>
+        </section>
+
+        <!-- Loading -->
+        <section class="state state--loading" id="loadingState" hidden>
+          <div class="spinner" aria-hidden="true"></div>
+          <p id="loadingText">Reading the sky…</p>
+        </section>
+
+        <!-- Error -->
+        <section class="state state--error" id="errorState" hidden>
+          <div class="empty-glyph">⚠️</div>
+          <h2 id="errorTitle">Something went wrong</h2>
+          <p id="errorMessage">
+            We couldn't reach the weather service. Try again in a moment.
+          </p>
+          <button class="retry-btn" id="retryBtn">Try again</button>
+        </section>
+
+        <!-- Content -->
+        <section class="content" id="content" hidden>
+          <!-- Hero -->
+          <div class="hero glass">
+            <div class="hero-location">
+              <h1 id="cityName">—</h1>
+              <p id="cityMeta">—</p>
+              <p class="hero-updated" id="lastUpdated"></p>
+            </div>
+
+            <div class="hero-main">
+              <div class="hero-icon" id="heroIcon" aria-hidden="true">☀️</div>
+              <div class="hero-temp">
+                <span id="currentTemp">--</span><span class="deg">°</span>
+              </div>
+              <div class="hero-desc">
+                <p id="conditionDesc">—</p>
+                <p class="hero-feels">
+                  Feels like <span id="feelsLike">--°</span>
+                </p>
+              </div>
+            </div>
+
+            <div class="hero-stats">
+              <div class="stat">
+                <span class="stat-label">High / Low</span>
+                <span class="stat-value" id="statHighLow">--° / --°</span>
+              </div>
+              <div class="stat">
+                <span class="stat-label">Humidity</span>
+                <span class="stat-value" id="statHumidity">--%</span>
+              </div>
+              <div class="stat">
+                <span class="stat-label">Wind</span>
+                <span class="stat-value" id="statWind">-- km/h</span>
+              </div>
+              <div class="stat">
+                <span class="stat-label">Pressure</span>
+                <span class="stat-value" id="statPressure">-- hPa</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hourly -->
+          <div class="section-block glass">
+            <h3 class="section-title">Next hours</h3>
+            <div class="hourly-strip" id="hourlyStrip"></div>
+          </div>
+
+          <!-- Forecast -->
+          <div class="section-block glass">
+            <div class="section-title-row">
+              <h3 class="section-title">7-day outlook</h3>
+              <span class="section-hint">From Open-Meteo</span>
+            </div>
+            <div class="forecast-grid" id="forecastGrid"></div>
+          </div>
+
+          <!-- Insight -->
+          <div class="section-block glass insight">
+            <div class="insight-icon" id="insightIcon">📈</div>
+            <div class="insight-text">
+              <h4 id="insightTitle">Outlook</h4>
+              <p id="insightBody">—</p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <p>
+          Powered by Open-Meteo · Developed by <b>Madhan Kumar</b> ·
+          Auto-refreshes every 10 min
+        </p>
+      </footer>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
